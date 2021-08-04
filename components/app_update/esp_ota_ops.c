@@ -154,15 +154,21 @@ esp_err_t esp_ota_begin(const esp_partition_t *partition, size_t image_size, esp
 #endif
 
     if (image_size != OTA_WITH_SEQUENTIAL_WRITES) {
-        // If input image size is 0 or OTA_SIZE_UNKNOWN, erase entire partition
-        if ((image_size == 0) || (image_size == OTA_SIZE_UNKNOWN)) {
-            ret = esp_partition_erase_range(partition, 0, partition->size);
-        } else {
-            const int aligned_erase_size = (image_size + SPI_FLASH_SEC_SIZE - 1) & ~(SPI_FLASH_SEC_SIZE - 1);
-            ret = esp_partition_erase_range(partition, 0, aligned_erase_size);
+        size_t bytesToDelete = partition->size;
+        if(image_size != 0 && image_size != OTA_SIZE_UNKNOWN)
+        {
+            bytesToDelete = (image_size / SPI_FLASH_SEC_SIZE + 1) * SPI_FLASH_SEC_SIZE;
         }
-        if (ret != ESP_OK) {
-            return ret;
+        size_t bytesDeleted = 0;
+        while(bytesDeleted < bytesToDelete)
+        {   //0x10000 seems stable enough without too much overhead, you can do larger or smaller chunks
+            size_t thisBytesToDelete = (bytesDeleted <= (bytesToDelete - 0x10000) ? 0x10000 : bytesToDelete - bytesDeleted);
+            ret = esp_partition_erase_range(partition, bytesDeleted, thisBytesToDelete);
+            if(ret != ESP_OK){
+            	return ret;
+            }
+            bytesDeleted+=thisBytesToDelete;
+            vTaskDelay( 10 / portTICK_PERIOD_MS); //Yield
         }
     }
 
