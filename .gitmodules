@@ -78,6 +78,7 @@
 [submodule "components/esp_wifi/lib"]
 	path = components/esp_wifi/lib
 	url = ../../espressif/esp32-wifi-lib.git
+	branch = release/v4.3
 
 [submodule "components/tinyusb/tinyusb"]
 	path = components/tinyusb/tinyusb
